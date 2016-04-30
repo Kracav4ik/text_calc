@@ -21,6 +21,9 @@ class ASTNumber(ASTNode):
         """
         self.number = number
 
+    def __repr__(self):
+        return '[%s]' % self
+
     def calc(self):
         return self.number
 
@@ -34,8 +37,21 @@ class ASTPlus(ASTNode):
         self.left_op = left_op
         self.right_op = right_op
 
+    def __repr__(self):
+        return '[%r `+` %r]' % (self.left_op, self.right_op)
+
     def calc(self):
         return self.left_op.calc() + self.right_op.calc()
+
+
+def get_ast(tokens):
+    if not tokens:
+        return None
+    res = to_number(tokens[0])
+    for i, action in enumerate(tokens[:-1]):
+        if action in OPERATORS:
+            res = ASTPlus(res, to_number(tokens[i + 1]))
+    return res
 
 
 def get_tokens(s):
@@ -76,7 +92,7 @@ if __name__ == '__main__':
             break
         tokens = get_tokens(line)
         print('tokens:', tokens)
-        values = [to_number(token) for token in tokens]
-        for value in values:
-            print('value is "%s" of type %s' % (value, type(value)))
+        value = get_ast(tokens)
+        print('tree is %r' % value)
+        print('value is "%s" of type %s' % (value, type(value)))
     print('done!')
