@@ -1,7 +1,7 @@
 
 NAN = '<not a number>'
 
-DIGITS = {'0123456789'[i]: i for i in range(10)}
+DIGITS = {c: i for i, c in enumerate('0123456789')}
 
 
 class ASTNode:
