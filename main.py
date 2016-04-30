@@ -1,7 +1,9 @@
-
 NAN = '<not a number>'
 
-DIGITS = {c: i for i, c in enumerate('0123456789')}
+DIGITS = '0123456789'
+OPERATORS = '+'
+
+DIGITS_MAP = {c: i for i, c in enumerate(DIGITS)}
 
 
 class ASTNode:
@@ -36,14 +38,33 @@ class ASTPlus(ASTNode):
         return self.left_op.calc() + self.right_op.calc()
 
 
+def get_tokens(s):
+    result = []
+    string = ''
+    for char in s:
+        if char in DIGITS:
+            string += char
+        else:
+            if string:
+                result.append(string)
+            if char in OPERATORS:
+                result.append(char)
+            string = ''
+
+    if string:
+        result.append(string)
+
+    return result
+
+
 def to_number(s):
     if not s:
         return NAN
     result = 0
     for char in s:
-        if char not in DIGITS:
+        if char not in DIGITS_MAP:
             return NAN
-        result = result*10 + DIGITS[char]
+        result = result * 10 + DIGITS_MAP[char]
     return ASTNumber(result)
 
 
@@ -53,6 +74,9 @@ if __name__ == '__main__':
         line = input('>>> ')
         if not line:
             break
-        value = to_number(line)
-        print('line is "%s" of type %s' % (value, type(value)))
+        tokens = get_tokens(line)
+        print('tokens:', tokens)
+        values = [to_number(token) for token in tokens]
+        for value in values:
+            print('value is "%s" of type %s' % (value, type(value)))
     print('done!')
