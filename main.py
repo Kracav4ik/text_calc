@@ -7,10 +7,16 @@ DIGITS_MAP = {c: i for i, c in enumerate(DIGITS)}
 OPERATORS_MAP = {
     '+': lambda x, y: x + y,
     '-': lambda x, y: x - y,
-    # '*': lambda x, y: x * y,
-    # '/': lambda x, y: x / y,
+    '*': lambda x, y: x * y,
+    '/': lambda x, y: x / y,
 }
 OPERATORS = OPERATORS_MAP.keys()
+PRIORITY_MAP = {
+    '+': 1,
+    '-': 1,
+    '*': 2,
+    '/': 2,
+}
 
 
 class ASTNode:
@@ -56,11 +62,34 @@ class ASTOperator(ASTNode):
 def get_ast(tokens):
     if not tokens:
         return None
-    res = to_number(tokens[0])
-    for i, action in enumerate(tokens[:-1]):
-        if action in OPERATORS:
-            res = ASTOperator(res, to_number(tokens[i + 1]), action)
-    return res
+    elif len(tokens) == 1:
+        return to_number(tokens[0])
+    nodes = []
+    operators_stack = []
+    for token in tokens:
+        # print('* token %s' % token)
+        if token in OPERATORS:
+            while operators_stack:
+                last_op = operators_stack[-1]
+                if PRIORITY_MAP[token] > PRIORITY_MAP[last_op]:
+                    # print('* stopping because `%s` has more prio than `%s`' % (token, last_op))
+                    break
+                new_node = ASTOperator(nodes[-2], nodes[-1], last_op)
+                # print('* merging %r and %r to %r' % (nodes[-2], nodes[-1], new_node))
+                nodes = nodes[:-2]
+                operators_stack = operators_stack[:-1]
+                nodes.append(new_node)
+            operators_stack.append(token)
+            # print('* op stack is', operators_stack)
+        else:
+            nodes.append(to_number(token))
+    while operators_stack:
+        new_node = ASTOperator(nodes[-2], nodes[-1], operators_stack[-1])
+        # print('* merging %r and %r to %r' % (nodes[-2], nodes[-1], new_node))
+        nodes = nodes[:-2]
+        operators_stack = operators_stack[:-1]
+        nodes.append(new_node)
+    return nodes[0]
 
 
 def get_tokens(s):
