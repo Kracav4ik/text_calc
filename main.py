@@ -1,9 +1,16 @@
 NAN = '<not a number>'
 
 DIGITS = '0123456789'
-OPERATORS = '+'
 
 DIGITS_MAP = {c: i for i, c in enumerate(DIGITS)}
+
+OPERATORS_MAP = {
+    '+': lambda x, y: x + y,
+    '-': lambda x, y: x - y,
+    # '*': lambda x, y: x * y,
+    # '/': lambda x, y: x / y,
+}
+OPERATORS = OPERATORS_MAP.keys()
 
 
 class ASTNode:
@@ -28,20 +35,22 @@ class ASTNumber(ASTNode):
         return self.number
 
 
-class ASTPlus(ASTNode):
-    def __init__(self, left_op, right_op):
+class ASTOperator(ASTNode):
+    def __init__(self, left_op, right_op, op):
         """
         :type left_op: ASTNode
         :type right_op: ASTNode
+        :type op: str
         """
         self.left_op = left_op
         self.right_op = right_op
+        self.op = op
 
     def __repr__(self):
-        return '[%r `+` %r]' % (self.left_op, self.right_op)
+        return '[%r `%s` %r]' % (self.left_op, self.op, self.right_op)
 
     def calc(self):
-        return self.left_op.calc() + self.right_op.calc()
+        return OPERATORS_MAP[self.op](self.left_op.calc(), self.right_op.calc())
 
 
 def get_ast(tokens):
@@ -50,7 +59,7 @@ def get_ast(tokens):
     res = to_number(tokens[0])
     for i, action in enumerate(tokens[:-1]):
         if action in OPERATORS:
-            res = ASTPlus(res, to_number(tokens[i + 1]))
+            res = ASTOperator(res, to_number(tokens[i + 1]), action)
     return res
 
 
