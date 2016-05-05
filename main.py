@@ -1,6 +1,7 @@
 NAN = '<not a number>'
 
 DIGITS = '0123456789'
+DOT = '.'
 
 DIGITS_MAP = {c: i for i, c in enumerate(DIGITS)}
 
@@ -95,17 +96,22 @@ def get_ast(tokens):
 def get_tokens(s):
     result = []
     string = ''
+    bull = True
     for char in s:
         if char in DIGITS:
             string += char
+        elif char == DOT and bull:
+            string += char
+            bull = False
         else:
-            if string:
+            if string and string != DOT:
                 result.append(string)
+                bull = True
             if char in OPERATORS:
                 result.append(char)
             string = ''
 
-    if string:
+    if string and string != DOT:
         result.append(string)
 
     return result
@@ -114,11 +120,22 @@ def get_tokens(s):
 def to_number(s):
     if not s:
         return NAN
-    result = 0
+    result_before_dot = 0
+    result_after_dot = 0
+
     for char in s:
-        if char not in DIGITS_MAP:
+        if char not in DIGITS_MAP and char != DOT:
             return NAN
-        result = result * 10 + DIGITS_MAP[char]
+        if char == DOT:
+            break
+        result_before_dot = result_before_dot * 10 + DIGITS_MAP[char]
+    if DOT in s:
+        for char in s[::-1]:
+            if char == DOT:
+                break
+            result_after_dot = result_after_dot / 10 + DIGITS_MAP[char]
+        result_after_dot /= 10
+    result = result_before_dot + result_after_dot
     return ASTNumber(result)
 
 
