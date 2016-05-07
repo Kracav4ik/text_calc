@@ -2,6 +2,8 @@ NAN = '<not a number>'
 
 DIGITS = '0123456789'
 DOT = '.'
+LEFT_PAREN = '('
+RIGHT_PAREN = ')'
 
 DIGITS_MAP = {c: i for i, c in enumerate(DIGITS)}
 
@@ -60,6 +62,20 @@ class ASTOperator(ASTNode):
         return OPERATORS_MAP[self.op](self.left_op.calc(), self.right_op.calc())
 
 
+class ASTParens(ASTNode):
+    def __init__(self, subtree):
+        """
+        :type subtree: ASTNode
+        """
+        self.subtree = subtree
+
+    def __repr__(self):
+        return '( %r )' % self.subtree
+
+    def calc(self):
+        return self.subtree.calc()
+
+
 def get_ast(tokens):
     if not tokens:
         return None
@@ -67,7 +83,10 @@ def get_ast(tokens):
         return to_number(tokens[0])
     nodes = []
     operators_stack = []
-    for token in tokens:
+    token_idx = 0
+    while token_idx < len(tokens):
+        token = tokens[token_idx]
+        token_idx += 1
         # print('* token %s' % token)
         if token in OPERATORS:
             while operators_stack:
@@ -82,6 +101,23 @@ def get_ast(tokens):
                 nodes.append(new_node)
             operators_stack.append(token)
             # print('* op stack is', operators_stack)
+        elif token == LEFT_PAREN:
+            paren_level = 0
+            left_paren_idx = token_idx - 1
+            local_i = left_paren_idx
+            while local_i < len(tokens):
+                local_token = tokens[local_i]
+                local_i += 1
+                if local_token == LEFT_PAREN:
+                    paren_level += 1
+                elif local_token == RIGHT_PAREN:
+                    paren_level -= 1
+                    if paren_level == 0:
+                        right_paren_idx = local_i - 1
+                        break
+
+            nodes.append(ASTParens(get_ast(tokens[left_paren_idx + 1:right_paren_idx])))
+            token_idx = right_paren_idx + 1
         else:
             nodes.append(to_number(token))
     while operators_stack:
@@ -107,7 +143,7 @@ def get_tokens(s):
             if string and string != DOT:
                 result.append(string)
                 bull = True
-            if char in OPERATORS:
+            if char in OPERATORS or char == RIGHT_PAREN or char == LEFT_PAREN:
                 result.append(char)
             string = ''
 
@@ -139,7 +175,23 @@ def to_number(s):
     return ASTNumber(result)
 
 
+def self_test():
+    assert get_tokens('') == []
+    assert get_tokens('123') == ['123']
+    assert get_tokens('   1  + 2  ') == ['1', '+', '2']
+    assert get_tokens('(+(+(+(+') == ['(', '+', '(', '+', '(', '+', '(', '+']
+
+    assert repr(get_ast(get_tokens('1+2*3'))) == '[[1] `+` [[2] `*` [3]]]'
+    assert repr(get_ast(get_tokens('2.'))) == '[2.0]'
+    assert repr(get_ast(get_tokens('2.1'))) == '[2.1]'
+    assert repr(get_ast(get_tokens('.1'))) == '[0.1]'
+    assert repr(get_ast(get_tokens('.1+2.'))) == '[[0.1] `+` [2.0]]'
+    assert repr(get_ast(get_tokens('1+(2+3)'))) == '[[1] `+` ( [[2] `+` [3]] )]'
+    assert repr(get_ast(get_tokens('1+(2+3)*4'))) == '[[1] `+` [( [[2] `+` [3]] ) `*` [4]]]'
+
+
 if __name__ == '__main__':
+    self_test()
     print('Calculator')
     while True:
         line = input('>>> ')
